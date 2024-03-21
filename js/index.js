@@ -1,5 +1,6 @@
 //Add constant variable that holds url for the backend
 const BACKEND_ROOT_URL = 'http://localhost:3001';
+
 // Import the Todos class from the specified file
 import {Todos} from "./class/Todos.js"
 

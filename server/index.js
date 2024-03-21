@@ -1,8 +1,10 @@
+//  Add require statement to use environment variables
+require('dotenv').config()
 // Import required express, cors and pg libraries
 const express =require('express')
 const cors = require ('cors')
-const {Pool} = require('pg')
-
+//const {Pool} = require('pg')
+const { query } = require('./helpers/db.js')
 // Create an Express application
 const app = express()
 
@@ -13,74 +15,56 @@ app.use(express.json())
 app.use(express.urlencoded({extended: false}))
 
 
-// 
-const port = 3001
+// Instead of using hardcoded value read port from .env file
+const port = process.env.PORT
 
 // Define a route for the root endpoint '/'
-app.get("/",(req, res) => {
+app.get("/",async (req, res) => {
     // Retrieve data from the database
-    const pool = openDb()
-
-    pool.query('select * from task', (error,result) => {
-        if (error){
-            // If an error occurs, send an error response with status code 500
-            res.status(500).json({error:error.message})
-        }
-            // Send the retrieved data as JSON response
-            res.status(200).json(result.rows)
-    })
+    console.log(query)
+    try {
+        const result= await query('select * from task')
+        const rows = result.rows ? result.rows : []
+        res.status(200).json(rows)
+    } catch (error) {
+        console.log(error)
+        res.statusMessage = error
+        res.status(500).json({error: error})
+    }
 })
 
-// Function to initialize the database connection pool
-function openDb() {
-    // Provide required credentials and information
-    const pool = new Pool({
-        user: 'postgres',
-        host: 'localhost',
-        database: 'todo',
-        password: '1905',
-        port: 5432 // Can have different values if database is running on a different port
-    });
-    return pool;
-}
-
 // Define a route to handle POST requests to create a new task
-app.post("/new",(req, res) => {
-    const pool = openDb()
-
-    // Execute SQL INSERT statement to insert a new task into the database
-    pool.query('insert into task (description) values ($1) returning *',
-    [req.body.description],
-    (error,result) => {
+app.post("/new",async (req, res) => {
+    try {
+      // Execute SQL INSERT statement to insert a new task into the database
+      const result = await query('insert into task (description) values ($1) returning *',
+      [req.body.description])
+      // If successful, send a success response with status code 200 and the ID of the newly inserted task
+      res.status(200).json({id: result.rows[0].id})
+    } catch (error){
+        console.log(error)
+        res.statusMessage = error
         // If an error occurs, send an error response with status code 500
-        if(error) {
-            res.status(500).json({error: error.message})  
-        } else{
-            // If successful, send a success response with status code 200 and the ID of the newly inserted task
-            res.status(200).json({id: result.rows[0].id})
-        }
-    })
+        res.status(500).json({error: error}) 
+    }
 })
 
 // Implement deletion functionality to the backend.  Create delete method, that receives id as query parameter
 app.delete("/delete/:id", async(req,res) => {
-    // Open a database connection pool
-    const pool = openDb()
-     // Extract the task ID from the request parameters
-    const id = parseInt(req.params.id)
-
-    // Execute SQL DELETE statement to delete the task by ID
-    pool.query('delete from task where id = $1',
-    [id],
-    (error, result) =>{
-        if(error) {
-             // If an error occurs, send an error response with status code 500
-            res.status(500).json({error:error.message})
-        } else {
-            // If successful, send a success response with status code 200 and the deleted task ID
-            res.status(200).json({id:id})
-        }
-    })
+    // Extract the task ID from the request parameters
+    const id = Number(req.params.id)
+    try {
+      // Execute SQL DELETE statement to delete the task by ID
+      const result = await query('delete from task where id = $1',
+      [id])
+      // If successful, send a success response with status code 200 and the deleted task ID
+      res.status(200).json({id:id})
+    } catch (error) {
+        console.log(error)
+        res.statusMessage = error
+        // If an error occurs, send an error response with status code 500
+        res.status(500).json({error: error}) 
+    }
 })
 
 // Set up express app to listen on port

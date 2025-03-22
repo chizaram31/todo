@@ -13,7 +13,7 @@ const openDb = () => {
         user: 'postgres',
         host: 'localhost',
         database: 'todo',
-        password: '0806',
+        password: 'todo',
         port: 5432
     });
 };
@@ -54,5 +54,21 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
+const renderTask = (task) => {
+    const li = document.createElement('li');
+    li.setAttribute('class', 'list-group-item');
+    li.innerHTML = task;
+    list.append(li);
+};
 
+input.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const task = input.value.trim();
+        if (task !== '') {
+            renderTask(task);
+            input.value = '';
+        }
+    }
+});
 
